@@ -21,4 +21,16 @@ Simple hardware for a limited number of devices is to use a USB to Serial adapte
 
 For longer wires and/or more devices a active open-drain inverter shall be used.
 
+# Schematic
+    ┌───────────────────┐
+    │ USB-TO-UART-5V    │          1k pull-up Resistor
+    │          [ TX ]───│───────[██████]──────┐
+    │                   │                     │     OUTPUT BUS
+    │          [ RX ]───│─────────────────────┴─────── ( BUS )
+    │                   │              
+    │          [ 5V ]───│───────────────────────────── ( +5V )
+    │                   │                              
+    │         [ GND ]───│───────────────────────────── ( GND )
+    │                   │
+    └───────────────────┘
 
