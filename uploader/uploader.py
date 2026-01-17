@@ -204,7 +204,7 @@ class CH32V003Bootloader:
                 self.ser.write([0x7F])
         time.sleep(0.2)
 
-    def search_nodes(self, slots=100, retries=2):
+    def search_nodes(self, slots=100, retries=3):
         """
         1. Scans for nodes using collision avoidance.
         2. Unsilences all nodes.
@@ -236,7 +236,7 @@ class CH32V003Bootloader:
 
         self._log("")
         self._log(f"Found {len(uids_found)} unique nodes:")
-        self._log(f"{'UID':<20} | {'Node ID':<10} | {'FW_ID':<10}")
+        self._log(f"{'UID':<20} | {'Node-ID':<10} | {'FW-ID':<10}")
         self._log("-" * 46)
         
         # Query every found node for its specific info
@@ -245,7 +245,7 @@ class CH32V003Bootloader:
             info = self.get_node_info(uid)
             if info:
                 discovered_devices[uid] = info
-                self._log(f"{uid:<20} | {info['node_id']:<10} | {info['fw_id']:<10}")
+                self._log(f"{uid:<20} | {info['node_id']:<10} | {info['fw']:<10}")
             else:
                 self._log(f"{uid:<20} | {'Error':<10} | {'Error':<10}")
         
@@ -256,7 +256,7 @@ class CH32V003Bootloader:
         self.send_packet(address, BOOT_GET_NODE_INFO)
         resp = self.get_response(timeout=0.5)
         if resp and resp['cmd'] == BOOT_GET_NODE_INFO and len(resp['data']) >= 2:
-            return {'node_id': resp['data'][0], 'fw_id': resp['data'][1]}
+            return {'node_id': resp['data'][0], 'fw': resp['data'][1]}
         return None
 
     def update_firmware(self, firmware_data, fw_id=0):
@@ -310,84 +310,64 @@ class CH32V003Bootloader:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='CH32V003 Multi-Node Bootloader Tool')
-    parser.add_argument('--port', '-p', default='COM13', help='Serial port')
-    parser.add_argument('--baud', '-b', type=int, default=9600, help='Baud rate')
-    parser.add_argument('--uid', help='Target specific Node UID (hex)')
+    parser = argparse.ArgumentParser(description='CH32V003 Bootloader Tool')
+    parser.add_argument('--port', '-p', default='COM13')
+    parser.add_argument('--baud', '-b', type=int, default=9600)
+    parser.add_argument('--uid', help='Target UID')
+    parser.add_argument('-i', '--file', help='Firmware file')
+    parser.add_argument('--fw', type=int, default=0)
     
-    # Define actions as optional flags instead of subparsers
-    parser.add_argument('--search', action='store_true', help='Scan for connected nodes')
-    parser.add_argument('--write', metavar='FILE', help='Write firmware to flash')
-    parser.add_argument('--fw_id', type=int, default=0, help='Target firmware ID (default 0)')
-    parser.add_argument('--verify', metavar='FILE', help='Verify flash CRC against file')
-    parser.add_argument('--get_info', action='store_true', help='Get info from specific node')
-    parser.add_argument('--set_fw_id', type=int, help='Set new Firmware ID')
-    parser.add_argument('--set_node_id', type=int, help='Set new Node ID')
-    parser.add_argument('--run', action='store_true', help='Start application execution')
+    # Use "nargs='?'" to make the value optional but immediately following the flag
+    # Use "const" to set the value if the flag is present but no value is provided
+    parser.add_argument('--search', type=int, nargs='?', const=63, help='Scan nodes. Optional: slot size (default 63)')
+    parser.add_argument('--verify', type=int, nargs='?', const=63, help='Verify CRC. Optional: slot size (default 63)')
+    
+    parser.add_argument('--write', action='store_true', help='Write firmware using -i file')
+    parser.add_argument('--run', action='store_true', help='Start application')
 
     args = parser.parse_args()
-
-    # Check if any action was provided
-    actions = [args.search, args.write, args.verify, args.get_info, 
-               args.set_fw_id, args.set_node_id, args.run]
-    if not any(actions):
-        parser.self._log_help()
-        return
-
     loader = CH32V003Bootloader(args.port, args.baud, verbose=True)
-    target = args.uid if args.uid else BROADCAST_ID
 
     try:
         loader.enter_bootloader()
-
-        # Execute commands in a logical sequence
-        if args.search:
-            loader.search_nodes()
-
-        if args.set_fw_id is not None:
-            if target == BROADCAST_ID:
-                self._log("Error: --uid is required to set FW_ID.")
-            else:
-                loader.set_fw_id(target, args.set_fw_id)
-
-        if args.set_node_id is not None:
-            if target == BROADCAST_ID:
-                self._log("Error: --uid is required to set Node ID.")
-            else:
-                loader.set_node_id(target, args.set_node_id)
-
+        
+        # Handle Writing firmware
         if args.write:
-            with open(args.write, 'rb') as f:
+            if not args.file:
+                print("Error: -i (file) is required for --write")
+                return
+            with open(args.file, 'rb') as f:
+                loader.update_firmware(f.read(), args.fw)
+
+        # Handle Verification (Accepts value from --verify)
+        if args.verify is not None:
+            if not args.file:
+                print("Error: -i (file) is required for --verify")
+                return
+            
+            slot_count = args.verify # This will be the number after 
+            targets = [args.uid] if args.uid else [u for u, inf in loader.search_nodes(slot_count).items() if inf['fw'] == args.fw]
+            
+            with open(args.file, 'rb') as f:
                 data = f.read()
-            loader.update_firmware(data, args.fw_id)
+                expected = binascii.crc32(data) & 0xFFFFFFFF
+                for uid in targets:
+                    res = loader.get_verify_crc(uid, len(data))
+                    status = "MATCH" if res == expected else "FAIL"
+                    print(f"Node {uid} | Expected: 0x{expected:08X} | Node: {f'0x{res:08X}' if res else 'TIMEOUT'} | {status}")
 
-        if args.verify:
-            if target == BROADCAST_ID:
-                self._log("Error: --uid is required for verification")
-            else:
-                with open(args.verify, 'rb') as f:
-                    data = f.read()
-                actual_crc = binascii.crc32(data) & 0xFFFFFFFF
-                node_crc = loader.get_verify_crc(target, len(data))
-                self._log(f"File CRC: 0x{actual_crc:08X} | Node CRC: 0x{node_crc:08X}")
-                if node_crc == actual_crc:
-                    self._log("Firmware CRC32 Match!")
-                else:
-                    self._log("Mismatch!")
-
-        if args.get_info:
-            if target == BROADCAST_ID:
-                self._log("Error: --uid is required for get_info")
-            else:
-                info = loader.get_node_info(target)
-                self._log(f"Node Info: {info}")
+        # Handle Standalone Search (Accepts value from --search)
+        if args.search is not None and args.verify is None:
+            slot_count = args.search
+            nodes = loader.search_nodes(slot_count)
+            for u, inf in nodes.items():
+                print(f"UID: {u} | Node-ID: {inf['node_id']} | FW-ID: {inf['fw']}")
 
         if args.run:
             loader.start_app()
-
     finally:
         loader.close()
-
+        
 if __name__ == "__main__":
     main()
     

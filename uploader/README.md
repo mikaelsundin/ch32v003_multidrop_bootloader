@@ -8,9 +8,22 @@ It supports node discovery, unique ID (UID) addressing, and firmware broadcastin
 * **Stop Bits**: Uses `2` stop bits for protocol stability.
 * **Synchronization**: The tool sends a stream of preamble bytes (`0x7F`) to force nodes into bootloader mode.
 
+## Examples
+
+### Write and verify firmware 
+python uploader.py --port COM13 --fw 0 -i fw_double_blink_pa2.bin --verify --write
+
+## verify (search for all nodes with fw-id 0
+python uploader.py --port COM13 --fw 0 -i fw_double_blink_pa2.bin --verify
+
+## Write, verify and run MCU:s
+python uploader.py --port COM13 --fw 0 -i fw_double_blink_pa2.bin --write --verify --run
+
+
 ## Commands
 
-### --search
+### --search [optional_windows_size]
+
 Scans the bus for all connected nodes using collision avoidance (silencing/unsilencing).
 * **Example**: `python uploader.py --port COM13 --search`
 
@@ -18,7 +31,7 @@ Scans the bus for all connected nodes using collision avoidance (silencing/unsil
 Broadcasts firmware to nodes. Use `--fw_id` to target specific groups.
 * **Example**: `python uploader.py --port COM13 --write firmware.bin --fw_id 1`
 
-### --verify [FILE]
+### --verify [optional_windows_size] [FILE]
 Compares local file CRC32 with the node's internal flash CRC32.
 * **Note**: Requires `--uid`.
 * **Example**: `python uploader.py --port COM13 --uid 0123456789ABCDEF --verify firmware.bin`
