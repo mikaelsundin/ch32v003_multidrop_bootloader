@@ -1,0 +1,35 @@
+name: PlatformIO CI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install platformio
+
+      - name: Run PlatformIO Build
+        working-directory: firmware
+        run: pio run -e github_action
+    
+      - name: Upload Firmware Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ch32v003-bootloader-binary
+          # Path relative to the repository root
+          path: firmware/.pio/build/github_action/firmware.bin
+          if-no-files-found: error
