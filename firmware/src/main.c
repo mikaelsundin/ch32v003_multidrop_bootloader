@@ -125,7 +125,7 @@ void process_packet(Packet_t* rx){
     if(cmd == BOOT_INFO){
         tx_len = 2;
         tx_ptr[0] = BOOTLOADER_MAJOR;
-        tx_ptr[0] = BOOTLOADER_MINOR;
+        tx_ptr[1] = BOOTLOADER_MINOR;
     }else if(cmd == BOOT_GET_CHIP){
         //Point tx_ptr to stored chip_name.
         tx_len = sizeof(chip_name);
