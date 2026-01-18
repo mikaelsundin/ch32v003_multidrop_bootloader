@@ -6,16 +6,18 @@
 #include <Wire.h>
 #include <SoftwareSerial.h>
 
+//Pins used
+#define LOAD_SWITCH_PIN   6
+#define UART_TX_PIN       2
+
+//PCA9658 settings.
 #define PCA9685_ALL_CALL 0x70
 #define MODE1 0x00
 #define MODE2 0x01
 #define LED0_ON_L 0x06
 
-// Pin connected to  PCA9685 OE pin
-const int uartTxPin = 2; 
-
 // SoftwareSerial handles the timing on Pin 2
-SoftwareSerial pcaUart(-1, uartTxPin); 
+SoftwareSerial pcaUart(-1, UART_TX_PIN); 
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -24,10 +26,10 @@ void setup() {
   Serial.begin(9600);
 
   Wire.begin();
-  Wire.setClock(400000);
+  Wire.setClock(100000);
   
-  pinMode(uartTxPin, OUTPUT);
-  digitalWrite(uartTxPin, HIGH); 
+  pinMode(UART_TX_PIN, OUTPUT);
+  digitalWrite(UART_TX_PIN, HIGH); 
 
   // 2. Setup PCA9685 MODE2
   Wire.beginTransmission(PCA9685_ALL_CALL);
@@ -52,10 +54,17 @@ void setup() {
     Wire.write(0x00); Wire.write(0x00); 
     Wire.endTransmission();
   }
+  delay(10);
 
+  //Turn on LOAD switch
+  pinMode(LOAD_SWITCH_PIN, OUTPUT);
+  digitalWrite(LOAD_SWITCH_PIN, LOW); 
+  delay(50);
+
+  //Init software uart.
   pcaUart.begin(9600); 
 
-  //Send bootloader 100 sync chars to get it to keep bootloader mode..
+  //Send bootloader 100 sync chars to get devices to keep bootloader mode..
   for(int i=0;i<100;i++){
     pcaUart.write(0x7F);
     delay(9);

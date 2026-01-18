@@ -41,7 +41,19 @@ class CH32V003Bootloader:
     def __init__(self, port, baud=9600, verbose=False):
         self.verbose = verbose
         try:
-            self.ser = serial.Serial(port, baud, timeout=0.01, stopbits=serial.STOPBITS_TWO)
+            self.ser = serial.Serial()
+            self.ser.port     = port
+            self.ser.baudrate = baud
+            self.ser.timeout  = 0.01
+            self.ser.stopbits = serial.STOPBITS_TWO
+
+            # keep both control lines low while opening
+            self.ser.setDTR(False)
+            self.ser.setRTS(False)
+            self.ser.open()
+
+
+            #self.ser = serial.Serial(port, baud, timeout=0.01, stopbits=serial.STOPBITS_TWO)
         except serial.SerialException as e:
             self._log(f"Error opening serial port {port}: {e}")
             return
@@ -305,6 +317,7 @@ class CH32V003Bootloader:
         return None
 
     def start_app(self):
+        time.sleep(0.2)
         self._log("Starting application...")
         self.send_packet(BROADCAST_ID, BOOT_GO)
 
