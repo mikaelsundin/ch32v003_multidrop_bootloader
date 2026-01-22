@@ -20,7 +20,7 @@ The state machine require at least 5 preambles to work.
 | :--- | :--- | :--- |
 | **Preamble** | min 5 Bytes | `0x7F...0x7F` |
 | **Header** | 1 Byte | `0x80` | `AddrLen` | `Type` |
-| **Address** | 1 or 16 Bytes | Node ID (8-bit) or Unique ID (128-bit) |
+| **Address** | 1 or 16 Bytes | Node ID (8-bit) or Unique ID (64-bit) |
 | **Command** | 1 Byte | Operation Code (see Section 3) |
 | **Length** | 1 Byte | Payload size ($0$ to $255$) |
 | **Data** | $N$ Bytes | Command-specific payload |
