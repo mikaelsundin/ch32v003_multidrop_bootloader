@@ -11,7 +11,7 @@ Be able to update multiple firmware's on a multidrop bus with CH32V003.
 * Search for nodes
 * Set Node-id and firmware-id for specific node
 * Get Node-id and firmware-id for specific node
-* Update firmware on all nodes with specific firmawre-id
+* Update firmware on all nodes with specific firmware-id
 * Calculate and check CRC32 for firmware.
 
 
@@ -19,7 +19,7 @@ Be able to update multiple firmware's on a multidrop bus with CH32V003.
 # Hardware
 Simple hardware for a limited number of devices is to use a USB to Serial adapter with a 1kohm resistor between TX and RX.
 
-For longer wires and/or more devices a active open-drain inverter shall be used.
+For longer wires and/or more devices a active open-drain buffer shall be used.
 
 # Schematic
     ┌───────────────────┐
