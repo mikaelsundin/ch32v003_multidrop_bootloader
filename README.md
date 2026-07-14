@@ -36,4 +36,3 @@ For longer wires and/or more devices a active open-drain buffer shall be used.
     │         [ GND ]───│───────────────────────────── ( GND )
     │                   │
     └───────────────────┘
-
